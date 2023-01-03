@@ -10,10 +10,10 @@
                     @if($users->count())
                         @foreach($users as $user)
                             <li class="chat-user-list @if($user->id == $friendInfo->id) active @endif">
-                                <a href="">
+                                <a href="{{ route('message.conversation', $user->id) }}">
                                     <div class="chat-image">
                                         {!! makeImageFromName($user->name) !!}
-                                        <i class="fa fa-circle user-status-icon" title="away"></i>
+                                        <i class="fa fa-circle user-status-icon  user-icon-{{ $user->id }}" title="Away"></i>
                                     </div>
                                     <div class="chat-name font-weight-bold">
                                         {{ $user->name }}
@@ -78,3 +78,74 @@
         </div>
     </div>
 @endsection
+@push('scripts')
+
+    <script>
+        $(function(){
+            let $chatInput = $(".chat-input");
+            let $chatInputToolbar = $(".chat-input-toolbar");
+            let $chatBody = $(".chat-body");
+
+
+            let user_id = "{{ auth()->user()->id }}";
+            let ip_address = '127.0.0.1';
+            let socket_port = '8005';
+            let socket = io(ip_address+ ':' +socket_port);
+            let friendId = "{{ $friendInfo->id }}";
+
+            // socket.on('connection');
+            socket.on('connect', function(){
+                socket.emit('user_connected', user_id);
+            });
+
+            socket.on('updateUserStatus', (data) => {
+                let $userStatusIcon = $('.user-status-icon');
+                $userStatusIcon.removeClass('text-success');
+                $userStatusIcon.attr('title', 'Away');
+
+                $.each(data, function(key, val){
+                    if(val !== null && val !== 0){
+                        let $userIcon = $(".user-icon-"+key);
+                        $userIcon.addClass('text-success');
+                        $userIcon.attr('title', 'Online');
+                    }
+                });
+                
+            });
+
+            $chatInput.keypress(function (e){
+                let message = $(this).html();
+                if (e.which === 13 && !e.shiftKey){
+                    $chatInput.html("");
+                    sendMessage(message);
+                    return false;
+                }
+            });
+
+            function sendMessage(message){
+                let url = "{{ route('message.send-message') }}";
+                let form = $(this);
+                let formData = new FormData();
+                let token = "{{ csrf_token() }}";
+
+                formData.append('message', message);
+                formData.append('_token', token);
+                formData.append('receiver_id', friendId);
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    dataType: 'JSON',
+                    success: function(response){
+                        if(response.success){
+                            console.log(response.data);
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+@endpush

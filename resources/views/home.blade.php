@@ -13,7 +13,7 @@
                                 <a href="{{ route('message.conversation', $user->id) }}">
                                     <div class="chat-image">
                                         {!! makeImageFromName($user->name) !!}
-                                        <i class="fa fa-circle user-status-icon" title="away"></i>
+                                        <i class="fa fa-circle user-status-icon user-icon-{{ $user->id }}" title="away"></i>
                                     </div>
                                     <div class="chat-name font-weight-bold">
                                         {{ $user->name }}
@@ -33,7 +33,7 @@
 @endsection
 
 @push('scripts')
-<script src="node_modules/socket.io-client/dist/socket.io.js"></script>
+
     <script>
         $(function(){
             let user_id = "{{ auth()->user()->id }}";
@@ -43,9 +43,23 @@
 
 
             // socket.on('connection');
-            socket.on('connection', function(){
-                alert("here");
+            socket.on('connect', function(){
                 socket.emit('user_connected', user_id);
+            });
+
+            socket.on('updateUserStatus', (data) => {
+                let $userStatusIcon = $('.user-status-icon');
+                $userStatusIcon.removeClass('text-success');
+                $userStatusIcon.attr('title', 'Away');
+
+                $.each(data, function(key, val){
+                    if(val !== null && val !== 0){
+                        let $userIcon = $(".user-icon-"+key);
+                        $userIcon.addClass('text-success');
+                        $userIcon.attr('title', 'Online');
+                    }
+                });
+                
             });
         });
     </script>
